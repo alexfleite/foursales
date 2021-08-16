@@ -5,6 +5,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import br.com.foursales.exception.CandidatoNotfoundException;
 import br.com.foursales.model.Candidato;
 import br.com.foursales.repository.CandidatoRepository;
 
@@ -62,20 +64,23 @@ public class CandidatoController {
 	 * Find by id. Recupera candidato pelo id
 	 *
 	 * @param id
-	 * @return Medico pelo id
+	 * @return Candidato pelo id
 	 */
 	@GetMapping(path = { "/{id}" })
 	public ResponseEntity<Candidato> findById(@PathVariable long id) {
 
 		logger.info("***** findById inicio ***** ");
 
-		ResponseEntity<Candidato> findById = repository.findById(id).map(record -> ResponseEntity.ok().body(record))
-				.orElse(ResponseEntity.notFound().build());
+		ResponseEntity<Candidato> findById = repository.findById(id).map(
+				record -> ResponseEntity.ok().body(record)).orElse(ResponseEntity.notFound().build());
 
 		if (null != findById) {
 			logger.info("findById: Candidato encontrado: " + findById.toString());
-		} else {
-			logger.info("findById: Candidato nao encontrado");
+			
+			if(findById.getStatusCode().equals(HttpStatus.NOT_FOUND)) {
+				throw new CandidatoNotfoundException();
+			}
+			
 		}
 
 		logger.info("***** findById final ***** ");
@@ -118,7 +123,7 @@ public class CandidatoController {
 
 		logger.info("update: Inicio");
 
-		return repository.findById(id).map(record -> {
+		ResponseEntity<Candidato> responseEntity = repository.findById(id).map(record -> {
 			record.setNome(candidato.getNome());
 			record.setEmail(candidato.getEmail());
 			record.setTelefone(candidato.getTelefone());
@@ -128,6 +133,17 @@ public class CandidatoController {
 			return ResponseEntity.ok().body(updated);
 
 		}).orElse(ResponseEntity.notFound().build());
+		
+		
+		if (null != responseEntity) {
+			logger.info("findById: Candidato encontrado: " + responseEntity.toString());
+			if(responseEntity.getStatusCode().equals(HttpStatus.NOT_FOUND)) {
+				throw new CandidatoNotfoundException();
+			}
+			
+		}
+		return responseEntity;
+		
 
 	}
 
@@ -142,12 +158,22 @@ public class CandidatoController {
 
 		logger.info("delete: Inicio");
 
-		return repository.findById(id).map(record -> {
+		ResponseEntity<String> responseEntity = repository.findById(id).map(record -> {
 			repository.deleteById(id);
 
 			logger.info("delete: fim");
 
 			return ResponseEntity.ok().body("Removido com sucesso");
 		}).orElse(ResponseEntity.notFound().build());
+		
+		
+		if (null != responseEntity) {
+			logger.info("findById: Candidato encontrado: " + responseEntity.toString());
+			if(responseEntity.getStatusCode().equals(HttpStatus.NOT_FOUND)) {
+				throw new CandidatoNotfoundException();
+			}
+		}
+		return responseEntity;
+		
 	}
 }

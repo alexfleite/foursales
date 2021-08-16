@@ -2,9 +2,12 @@ package br.com.foursales.controllers;
 
 import java.util.List;
 
+import javax.validation.Valid;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,6 +18,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import br.com.foursales.exception.CandidatoNotfoundException;
+import br.com.foursales.exception.CartaoCreditoNotfoundException;
 import br.com.foursales.model.CartaoCredito;
 import br.com.foursales.repository.CartaoCreditoRepository;
 
@@ -62,7 +67,7 @@ public class CartaoCreditoController {
 	 * Find by id. Recupera candidato pelo id
 	 *
 	 * @param id
-	 * @return Medico pelo id
+	 * @return CartaoCredito pelo id
 	 */
 	@GetMapping(path = { "/{id}" })
 	public ResponseEntity<CartaoCredito> findById(@PathVariable long id) {
@@ -74,8 +79,12 @@ public class CartaoCreditoController {
 
 		if (null != findById) {
 			logger.info("findById: CartaoCredito encontrado: " + findById.toString());
-		} else {
-			logger.info("findById: CartaoCredito nao encontrado");
+			
+			if(findById.getStatusCode().equals(HttpStatus.NOT_FOUND)) {
+				logger.info("findById: CartaoCredito nao encontrado");
+				logger.info("***** findById final ***** ");
+				throw new CartaoCreditoNotfoundException();
+			}
 		}
 
 		logger.info("***** findById final ***** ");
@@ -90,7 +99,7 @@ public class CartaoCreditoController {
 	 * @return CartaoCredito criado
 	 */
 	@PostMapping()
-	public CartaoCredito create(@RequestBody CartaoCredito cartaoCredito) throws Exception {
+	public CartaoCredito create(@Valid @RequestBody CartaoCredito cartaoCredito) throws Exception {
 
 		logger.info("***** create inicio ***** ");
 
@@ -118,7 +127,7 @@ public class CartaoCreditoController {
 
 		logger.info("update: Inicio");
 
-		return repository.findById(id).map(record -> {
+		ResponseEntity<CartaoCredito> responseEntity = repository.findById(id).map(record -> {
 			record.setBandeira(cartaoCredito.getBandeira());
 			record.setCVV(cartaoCredito.getCVV());
 			record.setNumero(cartaoCredito.getNumero());
@@ -128,7 +137,18 @@ public class CartaoCreditoController {
 			return ResponseEntity.ok().body(updated);
 
 		}).orElse(ResponseEntity.notFound().build());
-
+		
+		if (null != responseEntity) {
+			logger.info("findById: CartaoCredito encontrado: " + responseEntity.toString());
+			
+			if(responseEntity.getStatusCode().equals(HttpStatus.NOT_FOUND)) {
+				logger.info("findById: CartaoCredito nao encontrado");
+				logger.info("***** findById final ***** ");
+				throw new CartaoCreditoNotfoundException();
+			}
+		}
+		return responseEntity;
+		
 	}
 
 	/**
@@ -142,12 +162,28 @@ public class CartaoCreditoController {
 
 		logger.info("delete: Inicio");
 
-		return repository.findById(id).map(record -> {
+		ResponseEntity<String> responseEntity = repository.findById(id).map(record -> {
 			repository.deleteById(id);
 
 			logger.info("delete: fim");
 
 			return ResponseEntity.ok().body("Cartao " + id + " removido com sucesso");
 		}).orElse(ResponseEntity.notFound().build());
+		
+		if (null != responseEntity) {
+			logger.info("findById: CartaoCredito encontrado: " + responseEntity.toString());
+			
+			if(responseEntity.getStatusCode().equals(HttpStatus.NOT_FOUND)) {
+				logger.info("findById: CartaoCredito nao encontrado");
+				logger.info("***** findById final ***** ");
+				throw new CartaoCreditoNotfoundException();
+			}
+		}
+		return responseEntity;
+		
+		
+		
+		
 	}
+	
 }
